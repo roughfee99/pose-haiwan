@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Pencabar Pose Haiwan Cikgu Rafi - GitHub Edition</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- MediaPipe Pose & Camera Utils (Pinned Versions for WASM Stability) -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.4/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/pose.js" crossorigin="anonymous"></script>
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #0b0f17;
+            color: #f3f4f6;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .title-font {
+            font-family: 'Fredoka', cursive;
+        }
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+        }
+        .glow-emerald {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        }
+        .mirror-canvas {
+            transform: scaleX(-1);
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 4px;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.03); }
+        }
+        .pulse-guide {
+            animation: pulseGlow 3s infinite ease-in-out;
+        }
+        .btn-touch-active:active {
+            transform: scale(0.95);
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printableSummary, #printableSummary * {
+                visibility: visible;
+            }
+            #printableSummary {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white !important;
+                color: black !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-cyan-500 selection:text-black">
+
+    <header class="bg-gray-900/95 backdrop-blur border-b border-gray-800 sticky top-0 z-30 px-3 py-2.5">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <div class="p-2 bg-gradient-to-tr from-cyan-500 via-teal-500 to-indigo-600 rounded-xl shadow-lg shrink-0">
+                    <span class="text-xl sm:text-2xl">🦁</span>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-xl md:text-2xl font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-amber-300 title-font leading-tight">
+                        PENCABAR POSE HAIWAN
+                    </h1>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] sm:text-xs text-amber-400 font-bold">BY CIKGU RAFI</span>
+                        <span class="text-[10px] bg-indigo-950 text-indigo-300 border border-indigo-800 px-1.5 py-0.5 rounded-full font-semibold hidden sm:inline">GitHub Pages Edition</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Header Info & Controls -->
+            <div class="flex items-center gap-1.5 sm:gap-2.5">
+                <div id="playerBadgeHeader" class="hidden items-center gap-1.5 bg-gray-800/90 border border-gray-700 px-2 py-1 rounded-xl">
+                    <span id="headerAvatar" class="text-base">🧑‍🎓</span>
+                    <div class="text-left">
+                        <div id="headerPlayerName" class="text-[11px] font-bold text-cyan-300 truncate max-w-[80px] sm:max-w-[120px]">Pemain</div>
+                        <div id="headerPlayerClass" class="text-[9px] text-gray-400">Tahun 1</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center bg-gray-800/90 p-1 rounded-xl border border-gray-700">
+                    <button id="btnModeChallenge" onclick="setMode('challenge')" class="px-2 py-1 rounded-lg text-xs font-semibold transition-all duration-200 bg-cyan-500 text-black shadow-md btn-touch-active">
+                        🎯 Cabaran
+                    </button>
+                    <button id="btnModeFree" onclick="setMode('free')" class="px-2 py-1 rounded-lg text-xs font-semibold transition-all duration-200 text-gray-300 hover:text-white btn-touch-active">
+                        🎨 Bebas
+                    </button>
+                </div>
+
+                <button onclick="showGithubHelpModal()" class="px-2.5 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 border border-gray-700 text-xs text-gray-300 font-medium transition-all btn-touch-active flex items-center gap-1">
+                    <span>🐙</span> <span class="hidden md:inline">GitHub Info</span>
+                </button>
+
+                <button id="btnToggleCam" onclick="toggleWebcam()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-xs font-bold text-white shadow-md border border-indigo-400/30 transition-all flex items-center gap-1 btn-touch-active">
+                    <span>📹</span> <span id="camBtnText" class="hidden xs:inline">Mula Kamera</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="startModal" class="fixed inset-0 bg-gray-950/95 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl p-5 sm:p-8 max-w-md w-full shadow-2xl relative overflow-hidden my-auto">
+            <div class="absolute -right-10 -top-10 w-36 h-36 bg-cyan-500/10 rounded-full blur-2xl"></div>
+            
+            <div class="text-center mb-5">
+                <div class="inline-block p-3.5 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-2xl mb-2 shadow-lg glow-cyan">
+                    <span class="text-3xl sm:text-4xl">🦁</span>
+                </div>
+                <h2 class="text-xl sm:text-2xl font-extrabold text-white title-font">Daftar Pemain Murid</h2>
+                <p class="text-xs text-amber-400 font-bold mt-0.5">Aplikasi Interaktif Oleh Cikgu Rafi</p>
+                <p class="text-[11px] text-gray-400 mt-1">Gunakan Kamera Web Laptop, Tablet atau Telefon Pintar!</p>
+            </div>
+
+            <form onsubmit="startGameSession(event)" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-bold text-cyan-300 uppercase tracking-wider mb-1">Nama Murid / Pemain:</label>
+                    <input type="text" id="inputPlayerName" required placeholder="Contoh: Amirul Bin Ahmad" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-cyan-300 uppercase tracking-wider mb-1">Kelas / Tahun:</label>
+                        <select id="selectPlayerClass" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-2.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400">
+                            <option value="Tahun 1">Tahun 1</option>
+                            <option value="Tahun 2">Tahun 2</option>
+                            <option value="Tahun 3">Tahun 3</option>
+                            <option value="Tahun 4">Tahun 4</option>
+                            <option value="Tahun 5">Tahun 5</option>
+                            <option value="Tahun 6">Tahun 6</option>
+                            <option value="Pra-Sekolah">Pra-Sekolah</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-cyan-300 uppercase tracking-wider mb-1">Avatar:</label>
+                        <select id="selectAvatar" class="w-full bg-gray-950 border border-gray-700 rounded-xl px-2.5 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400">
+                            <option value="🧑‍🎓">🧑‍🎓 Pelajar A</option>
+                            <option value="👩‍🎓">👩‍🎓 Pelajar B</option>
+                            <option value="🐯">🐯 Harimau</option>
+                            <option value="🦅">🦅 Helang</option>
+                            <option value="🚀">🚀 Wira</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 hover:from-cyan-400 hover:to-emerald-300 text-black font-extrabold text-sm shadow-xl glow-cyan transition-all transform active:scale-95 mt-2 btn-touch-active">
+                    🎮 Mula Permainan Sekarang
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <main class="max-w-7xl w-full mx-auto p-2 sm:p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6 flex-grow">
+
+        <!-- Panel Kiri: Maklumat Pose & Senarai Aksi -->
+        <section class="lg:col-span-4 flex flex-col gap-3 order-2 lg:order-1">
+            
+            <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-3 sm:p-4 shadow-xl relative overflow-hidden flex flex-col gap-2.5">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center gap-2">
+                        <span id="animalIcon" class="text-2xl sm:text-3xl bg-gray-800 p-2 rounded-2xl border border-gray-700 shadow-inner">🦁</span>
+                        <div>
+                            <span id="levelBadge" class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-950 text-cyan-300 border border-cyan-800/60">
+                                Aksi 1 / 10
+                            </span>
+                            <h2 id="animalName" class="text-base sm:text-lg font-bold text-white title-font leading-tight mt-0.5">Singa / Harimau Gagah</h2>
+                        </div>
+                    </div>
+                    <div id="starsDisplay" class="text-amber-400 text-sm sm:text-base tracking-widest font-bold">☆☆☆</div>
+                </div>
+
+                <!-- Gambar Panduan Visual Cara Pose -->
+                <div class="bg-gray-950 border border-cyan-900/40 rounded-xl p-2.5 flex flex-col items-center justify-center relative overflow-hidden">
+                    <div class="text-[10px] sm:text-[11px] font-extrabold text-cyan-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                        <span>🖼️</span> Panduan Visual Cara Pose
+                    </div>
+                    
+                    <div id="poseGuideGraphic" class="w-full h-24 sm:h-32 flex items-center justify-center p-1 relative pulse-guide">
+                        <!-- SVG Graphic Inserted via JS -->
+                    </div>
+
+                    <p id="animalDesc" class="text-[11px] sm:text-xs text-gray-300 text-center leading-relaxed mt-1 font-medium">
+                        Angkat kedua-dua tangan tinggi seperti kuku harimau!
+                    </p>
+                </div>
+
+                <!-- Meter Ketepatan Real-Time & Hold Timer -->
+                <div id="challengeProgressBox" class="space-y-1.5 pt-0.5">
+                    <div class="flex justify-between text-xs font-semibold">
+                        <span class="text-gray-400 text-[11px]">Ketepatan AI (Lulus >50%):</span>
+                        <span id="accuracyText" class="text-cyan-400 font-bold text-xs sm:text-sm">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-800 rounded-full h-2.5 p-0.5 border border-gray-700 overflow-hidden">
+                        <div id="accuracyBar" class="bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 h-1.5 rounded-full transition-all duration-150" style="width: 0%"></div>
+                    </div>
+
+                    <div id="holdTimerContainer" class="hidden space-y-1 pt-1">
+                        <div class="flex justify-between text-[10px] sm:text-[11px] font-bold text-emerald-400">
+                            <span>⏱️ Tahan Pose & Tangkap Gambar...</span>
+                            <span id="holdCountdownText">1.0s</span>
+                        </div>
+                        <div class="w-full bg-gray-800 rounded-full h-2 border border-emerald-900 p-0.5">
+                            <div id="holdTimerBar" class="bg-gradient-to-r from-emerald-500 to-green-300 h-1 rounded-full transition-all duration-75" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Senarai Pilihan 10 Kad Haiwan -->
+            <div class="bg-gray-900/90 border border-gray-800 rounded-2xl p-3 shadow-xl flex-grow flex flex-col">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <span>🐾 Senarai 10 Aksi Haiwan</span>
+                    <span id="galleryCountBadge" class="text-[10px] text-emerald-400 font-normal">📸 0/10 Gambar</span>
+                </h3>
+                
+                <div id="animalList" class="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-2 gap-2 overflow-y-auto max-h-[160px] sm:max-h-[220px] lg:max-h-[260px] pr-1">
+                    <!-- Dynamic Cards Generated Here -->
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Panel Kanan: Live Stream Camera Feed & Responsive Canvas -->
+        <section class="lg:col-span-8 flex flex-col gap-3 order-1 lg:order-2">
+            
+            <div class="relative bg-gray-950 border border-gray-800 rounded-2xl p-1.5 sm:p-3 shadow-2xl flex-grow flex flex-col items-center justify-center min-h-[320px] xs:min-h-[380px] md:min-h-[460px] overflow-hidden">
+                
+                <div class="absolute inset-0 bg-[radial-gradient(#1f2937_1px,transparent_1px)] [background-size:20px_20px] opacity-40 pointer-events-none"></div>
+
+                <video id="webcamVideo" class="hidden" playsinline muted></video>
+                <canvas id="outputCanvas" class="w-full h-full max-w-[640px] max-h-[480px] rounded-xl object-contain mirror-canvas relative z-0"></canvas>
+
+                <!-- Feedback Banner Overlay -->
+                <div id="feedbackBanner" class="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full font-extrabold text-xs sm:text-base transition-all duration-300 z-20 title-font opacity-0 -translate-y-4 pointer-events-none whitespace-nowrap"></div>
+
+                <!-- Flashing Snapshot Flash Effect -->
+                <div id="snapshotFlash" class="absolute inset-0 bg-white opacity-0 pointer-events-none z-30 transition-opacity duration-150"></div>
+
+                <!-- Overlay Placeholder Kamera -->
+                <div id="camPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-950/95 p-4 text-center z-10">
+                    <div class="p-3.5 bg-gray-900 rounded-full border border-gray-800 mb-3 animate-bounce">
+                        <span class="text-4xl sm:text-5xl">📷</span>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-bold text-white mb-1.5 title-font">Kamera Belum Dihidupkan</h3>
+                    <p class="text-[11px] sm:text-xs text-gray-400 max-w-md mb-4 leading-relaxed">
+                        Sila benarkan akses kamera web untuk bertukar pose secara real-time!
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <button onclick="toggleWebcam()" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-black font-extrabold text-xs sm:text-sm shadow-xl glow-cyan transition-all transform active:scale-95 btn-touch-active">
+                            🎥 Hidupkan Kamera Sekarang
+                        </button>
+                        <button onclick="showCameraHelpModal()" class="px-4 py-2.5 rounded-2xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs shadow-md border border-gray-700 transition-all btn-touch-active">
+                            ❓ Kamera Tak Keluar?
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Visual Control Toolbar -->
+            <div class="bg-gray-900/90 border border-gray-800 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleMirror()" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 font-bold text-[11px] btn-touch-active flex items-center gap-1">
+                        <span>🪞</span> <span>Cermin: <strong id="mirrorStateText" class="text-cyan-400">ON</strong></span>
+                    </button>
+                    <button onclick="toggleSkeletonOverlay()" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 font-bold text-[11px] btn-touch-active flex items-center gap-1">
+                        <span>👔</span> <span>Uniform: <strong id="uniformBtnText" class="text-emerald-400">ON</strong></span>
+                    </button>
+                    <button onclick="switchMobileCamera()" class="px-3 py-1.5 rounded-lg bg-indigo-950 hover:bg-indigo-900 border border-indigo-800 text-indigo-300 font-bold text-[11px] btn-touch-active flex items-center gap-1">
+                        <span>🔄</span> <span>Tukar Kamera</span>
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="manualCaptureSnapshot()" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-[11px] shadow btn-touch-active flex items-center gap-1">
+                        <span>📸</span> <span>Tangkap Gambar</span>
+                    </button>
+                    <button onclick="showSummaryModal()" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-extrabold text-[11px] shadow btn-touch-active flex items-center gap-1">
+                        <span>📜</span> <span>Lihat Sijil</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Footer Tip -->
+            <div class="bg-gray-900/60 border border-gray-800/80 rounded-xl p-2.5 flex items-center justify-between gap-2 text-[11px] text-gray-400">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-cyan-400">🏫</span>
+                    <span>Watermark <strong>By Cikgu Rafi</strong> disertakan automatik dalam gambar & sijil.</span>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Modal Sijil & Laporan Keputusan Akhir -->
+    <div id="summaryModal" class="hidden fixed inset-0 bg-gray-950/95 backdrop-blur-md z-50 overflow-y-auto p-3 sm:p-6">
+        <div class="max-w-4xl mx-auto bg-gray-900 border border-gray-800 rounded-3xl p-4 sm:p-8 shadow-2xl relative my-4">
+            
+            <!-- Certificate/Printable Area -->
+            <div id="printableSummary" class="p-3 sm:p-6 rounded-2xl bg-gray-900 text-white">
+                
+                <div class="text-center border-b border-gray-800 pb-4 mb-4">
+                    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950 border border-cyan-800 text-cyan-300 text-[11px] font-bold mb-2">
+                        <span>📜 SIJIL PENCAPAIAN POSE HAIWAN</span>
+                    </div>
+                    <h2 class="text-xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-amber-300 title-font">
+                        Laporan Keputusan & Gambar Pose Best
+                    </h2>
+                    <p class="text-xs text-amber-400 font-bold mt-0.5">Disediakan Oleh: Cikgu Rafi</p>
+                </div>
+
+                <!-- Player Summary Info Header -->
+                <div class="flex flex-wrap items-center justify-between gap-4 bg-gray-950 p-4 rounded-2xl border border-gray-800 mb-6">
+                    <div class="flex items-center gap-3">
+                        <span id="summaryAvatar" class="text-3xl sm:text-4xl">🧑‍🎓</span>
+                        <div>
+                            <h3 id="summaryPlayerName" class="text-lg sm:text-xl font-bold text-cyan-300">Nama Pemain</h3>
+                            <p id="summaryPlayerClass" class="text-xs text-gray-400">Tahun 1</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div id="summaryTotalScore" class="text-lg sm:text-2xl font-black text-amber-400">0 / 1000 Mata</div>
+                        <div id="summaryGrade" class="text-xs font-bold text-emerald-400">CEMERLANG 🌟🌟🌟</div>
+                    </div>
+                </div>
+
+                <!-- Snapshot Gallery Grid -->
+                <div id="summaryGalleryGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
+                    <!-- Dynamic Gallery Items -->
+                </div>
+
+                <div class="text-center text-xs text-gray-400 border-t border-gray-800 pt-3">
+                    Disertakan Watermark Rasmi <strong>By Cikgu Rafi</strong>
+                </div>
+            </div>
+
+            <!-- Modal Actions (No-print) -->
+            <div class="flex flex-wrap gap-3 justify-end mt-6 no-print">
+                <button onclick="window.print()" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs sm:text-sm shadow-lg transition-all btn-touch-active flex items-center gap-1.5">
+                    🖨️ Cetak / Simpan Sijil PDF
+                </button>
+                <button onclick="restartGame()" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-cyan-500 to-teal-500 hover:from-cyan-400 hover:to-teal-400 text-black font-extrabold text-xs sm:text-sm shadow-lg transition-all btn-touch-active flex items-center gap-1.5">
+                    🔄 Main Lagi
+                </button>
+                <button onclick="closeSummaryModal()" class="px-4 py-2.5 rounded-2xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs transition-all btn-touch-active">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Info GitHub Pages -->
+    <div id="githubHelpModal" class="hidden fixed inset-0 bg-gray-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-gray-900 border border-indigo-500/50 rounded-3xl p-5 sm:p-7 max-w-lg w-full shadow-2xl relative my-auto">
+            <div class="text-center mb-4">
+                <div class="inline-block p-3 bg-indigo-500/20 rounded-2xl mb-2 text-indigo-400 text-3xl">
+                    🐙
+                </div>
+                <h3 class="text-lg sm:text-xl font-extrabold text-white title-font">Cara Hoskan di GitHub Pages</h3>
+                <p class="text-xs text-indigo-300 font-bold mt-1">Langkah Percuma & Mudah Disebarkan Kepada Murid</p>
+            </div>
+
+            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-3.5 space-y-3 text-xs text-gray-300 mb-5">
+                <div class="flex items-start gap-2.5">
+                    <span class="bg-indigo-950 text-indigo-400 font-bold px-2 py-0.5 rounded text-[10px]">1</span>
+                    <div>
+                        <strong>Buat Repository Baharu:</strong>
+                        <p class="text-[11px] text-gray-400 mt-0.5">Buka GitHub.com, buat repository baharu (contoh: <code>pose-haiwan</code>) dan setkan sebagai <strong>Public</strong>.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-2.5">
+                    <span class="bg-indigo-950 text-indigo-400 font-bold px-2 py-0.5 rounded text-[10px]">2</span>
+                    <div>
+                        <strong>Muat Naik Fail index.html:</strong>
+                        <p class="text-[11px] text-gray-400 mt-0.5">Muat naik fail <code>index.html</code> ini ke dalam cawangan <code>main</code> / <code>master</code> repository anda.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-2.5">
+                    <span class="bg-indigo-950 text-indigo-400 font-bold px-2 py-0.5 rounded text-[10px]">3</span>
+                    <div>
+                        <strong>Aktifkan GitHub Pages:</strong>
+                        <p class="text-[11px] text-gray-400 mt-0.5">Pergi ke <strong>Settings ➔ Pages</strong>, pilih Branch <code>main</code> dan tekan <strong>Save</strong>. Laman anda siap diterbitkan dalam masa 1 minit!</p>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="closeGithubHelpModal()" class="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs shadow-lg transition-all btn-touch-active">
+                Faham & Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Bantuan Kamera Telefon & Pelayar -->
+    <div id="cameraErrorModal" class="hidden fixed inset-0 bg-gray-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-gray-900 border border-amber-500/50 rounded-3xl p-5 sm:p-7 max-w-lg w-full shadow-2xl relative my-auto">
+            <div class="text-center mb-4">
+                <div class="inline-block p-3 bg-amber-500/20 rounded-2xl mb-2 text-amber-400 text-3xl">
+                    ⚠️
+                </div>
+                <h3 class="text-lg sm:text-xl font-extrabold text-white title-font" id="cameraErrorTitle">Kamera Tidak Ditemui / Disekat</h3>
+                <p class="text-xs text-amber-400 font-bold mt-1" id="cameraErrorMessage">Sistem tidak dapat mengakses kamera telefon anda.</p>
+            </div>
+
+            <div class="bg-gray-950 border border-gray-800 rounded-2xl p-3.5 space-y-3 text-xs text-gray-300 mb-5">
+                <div class="font-bold text-cyan-300 uppercase tracking-wider text-[11px] border-b border-gray-800 pb-1.5">
+                    📱 Cara Penyelesaian Pada Telefon Pintar:
+                </div>
+
+                <div class="flex items-start gap-2.5">
+                    <span class="bg-cyan-950 text-cyan-400 font-bold px-2 py-0.5 rounded text-[10px]">1</span>
+                    <div>
+                        <strong>Buka di Pelayar Utama (Chrome / Safari):</strong>
+                        <p class="text-[11px] text-gray-400 mt-0.5">Jika anda membuka dari WhatsApp / Telegram / Google Apps, tekan 3 titik di atas kanan dan pilih <em>"Open in Chrome"</em> atau <em>"Open in Safari"</em>.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-2.5">
+                    <span class="bg-cyan-950 text-cyan-400 font-bold px-2 py-0.5 rounded text-[10px]">2</span>
+                    <div>
+                        <strong>Benarkan Kebenaran Kamera (Permission):</strong>
+                        <p class="text-[11px] text-gray-400 mt-0.5">Tekan ikon kunci 🔒 / tetapan di sebelah alamat laman web (URL bar) pelayar anda, kemudian hidupkan pilihan <strong>Camera ➔ Allow</strong>.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="retryCameraAccess()" class="flex-1 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-teal-500 text-black font-extrabold text-xs shadow-lg glow-cyan transition-all active:scale-95 btn-touch-active">
+                    🔄 Cuba Hidupkan Kamera Lagi
+                </button>
+                <button onclick="closeCameraErrorModal()" class="px-4 py-3 rounded-2xl bg-gray-800 text-gray-300 font-bold text-xs transition-all btn-touch-active">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="border-t border-gray-800/60 bg-gray-950 py-2.5 text-center text-[11px] text-gray-500 no-print">
+        <p>© 2026 Interactive Student Pose Challenge • <strong>By Cikgu Rafi</strong> • MediaPipe AI Detection</p>
+    </footer>
+
+    <script>
+        const ANIMAL_POSES = [
+            {
+                id: 'lion', name: 'Singa / Harimau Gagah', icon: '🦁',
+                desc: 'Angkat kedua-dua tangan tinggi mendepang seperti kuku menerkam, kangkangkan kaki & bengkokkan lutut!',
+                svg: `<svg viewBox="0 0 100 120" class="w-full h-full stroke-cyan-400 fill-none stroke-[3.5] stroke-linecap-round stroke-linejoin-round"><circle cx="50" cy="22" r="9" class="fill-cyan-950/80 stroke-cyan-300"/><path d="M40,16 Q50,8 60,16" class="stroke-amber-400"/><path d="M50,31 L50,65"/><path d="M50,40 L30,30 L22,18" class="stroke-emerald-400"/><path d="M50,40 L70,30 L78,18" class="stroke-emerald-400"/><circle cx="22" cy="18" r="3" class="fill-amber-400 stroke-none"/><circle cx="78" cy="18" r="3" class="fill-amber-400 stroke-none"/><path d="M50,65 L32,82 L28,105"/><path d="M50,65 L68,82 L72,105"/></svg>`,
+                rules: { elbowsBent: { min: 30, max: 140 }, handsAboveShoulders: true, kneesBent: true }
+            },
+            {
+                id: 'eagle', name: 'Burung Helang Terbang', icon: '🦅',
+                desc: 'Depangkan kedua-dua belah tangan lurus mendatar ke tepi seperti kepak helang meluncur di udara!',
+                svg: `<svg viewBox="0 0 100 120" class="w-full h-full stroke-cyan-400 fill-none stroke-[3.5] stroke-linecap-round stroke-linejoin-round"><circle cx="50" cy="22" r="9" class="fill-cyan-950/80 stroke-cyan-300"/><path d="M50,31 L50,70"/><path d="M50,38 L15,38 L5,38" class="stroke-emerald-400 stroke-[4]"/><path d="M50,38 L85,38 L95,38" class="stroke-emerald-400 stroke-[4]"/><path d="M50,70 L40,105"/><path d="M50,70 L60,105"/></svg>`,
+                rules: { armsSpreadHorizontal: true, standingTall: true }
+            },
+            {
+                id: 'frog', name: 'Katak Mencangkung', icon: '🐸',
+                desc: 'Mencangkung rendah dengan lutut terbukak lebar dan tangan turun menghampiri lantai!',
+                svg: `<svg viewBox="0 0 100 120" class="w-full h-full stroke-cyan-400 fill-none stroke-[3.5] stroke-linecap-round stroke-linejoin-round"><circle cx="50" cy="30" r="9" class="fill-cyan-950/80 stroke-cyan-300"/><path d="M50,39 L50,68"/><path d="M50,45 L42,65 L40,88" class="stroke-emerald-400"/><path d="M50,45 L58,65 L60,88" class="stroke-emerald-400"/><path d="M50,68 L22,70 L28,98"/><path d="M50,68 L78,70 L72,98"/></svg>`,
+                rules: { deepSquat: true }
+            },
+            {
+                id: 'kangaroo', name: 'Kanggaru Melompat', icon: '🦘',
+                desc: 'Bongkokkan badan sedikit, rapatkan siku ke dada dengan tangan menghadap ke hadapan!',
+                svg: `<svg viewBox="0 0 100 120" class="w-full h-full stroke-cyan-400 fill-none stroke-[3.5] stroke-linecap-round stroke-linejoin-round"><circle cx="50" cy="22" r="9" class="fill-cyan-950/80 stroke-cyan-300"/><path d="M50,31 L50,68"/><path d="M50,42 L38,52 L36,44" class="stroke-emerald-400 stroke-[4]"/><path d="M50,42 L62,52 L64,44" class="stroke-emerald-400 stroke-[4]"/><path d="M50,68 L38,88 L34,106"/><path d="M50,68 L62,88 L66,106"/></svg>`,
+                rules: { handsAtChest: true }
+            },
+            {
+                id: 'snake', name: 'Ular Sira Meliuk', icon: '🐍',
+                desc: 'Tinggikan kedua-dua tangan rapat di atas kepala dan sengetkan pusingan badan meliuk!',
+                svg: `<svg viewBox="0 0 100 120" class="w-full h-full stroke-cyan-400 fill-none stroke-[3.5] stroke-linecap-round stroke-linejoin-round"><circle cx="52" cy="32" r="9" class="fill-cyan-950/80 stroke-cyan-300"/><path d="M52,41 Q40,60 52,78 T50,108"/><path d="M52,43 Q42,25 50,10" class="stroke-emerald-400 stroke-[4]"/><path d="M52,43 Q62,25 54,10" class="stroke-emerald-400 stroke-[4]"/></svg>`,
+                rules: { handsOverheadTogether: true }
+            },
+            {
+                id: 'crab', name: 'Ketam Pantai', icon: '🦀',
+                desc: 'Mencangkung dengan kaki kangkang, angkat siku melengkung ke atas membentuk sepit ketam!',
+                svg: `<svg viewBox="0 0 100 120" class="w-full h-full stroke-cyan-400 fill-none stroke-[3.5] stroke-linecap-round stroke-linejoin-round"><circle cx="50" cy="28" r="9" class="fill-cyan-950/80 stroke-cyan-300"/><path d="M50,37 L50,66"/><path d="M50,42 L25,30 L18,18" class="stroke-emerald-400 stroke-[4]"/><path d="M50,42 L75,30 L82,18" class="stroke-emerald-400 stroke-[4]"/><path d="M50,66 L25,78 L20,102"/><path d="M50,66 L75,78 L80,102"/></svg>`,
+                rules: { elbowsHighUp: true, kneesBent: true }
+            },
+            {
+                id: 'flamingo', name: 'Burung Flamingo', icon: '🦩',
+                desc: 'Berdiri tegak seimbang dengan sebelah kaki tegak, dan sebelah lagi kaki diangkat/dilipat!',
+                svg: `<svg viewBox="0 0 100 120" class="w-full h-full stroke-cyan-400 fill-none stroke-[3.5] stroke-linecap-round stroke-linejoin-round"><circle cx="50" cy="22" r="9" class="fill-cyan-950/80 stroke-cyan-300"/><path d="M50,31 L50,65"/><path d="M50,38 L32,50" class="stroke-emerald-400"/><path d="M50,38 L68,50" class="stroke-emerald-400"/><path d="M50,65 L50,105" class="stroke-cyan-300 stroke-[4]"/><path d="M50,65 L72,80 L52,80" class="stroke-emerald-400 stroke-[3.5]"/></svg>`,
+                rules: { oneLegRaised: true, standingTall: true }
+            },
+            {
+                id: 'gorilla', name: 'Gorila Gagah', icon: '🦍',
+                desc: 'Mencangkung bongkok ke hadapan, turunkan tangan menghampiri lutut/paha secara gagah!',
+                svg: `<svg viewBox="0 0 100 120" class="w-full h-full stroke-cyan-400 fill-none stroke-[3.5] stroke-linecap-round stroke-linejoin-round"><circle cx="50" cy="26" r="10" class="fill-cyan-950/80 stroke-cyan-300"/><path d="M50,36 L50,68 stroke-[5]"/><path d="M50,42 L32,62 L32,82" class="stroke-emerald-400 stroke-[4.5]"/><path d="M50,42 L68,62 L68,82" class="stroke-emerald-400 stroke-[4.5]"/><path d="M50,68 L36,85 L38,105"/><path d="M50,68 L64,85 L62,105"/></svg>`,
+                rules: { deepSquat: true }
+            },
+            {
+                id: 'grasshopper', name: 'Belalang Melompat', icon: '🦗',
+                desc: 'Mencangkung rendah dengan siku diangkat pointed tinggi melambangkan kaki belalang!',
+                svg: `<svg viewBox="0 0 100 120" class="w-full h-full stroke-cyan-400 fill-none stroke-[3.5] stroke-linecap-round stroke-linejoin-round"><circle cx="50" cy="30" r="8" class="fill-cyan-950/80 stroke-cyan-300"/><path d="M50,38 L50,68"/><path d="M50,45 L25,22 L35,55" class="stroke-emerald-400 stroke-[4]"/><path d="M50,45 L75,22 L65,55" class="stroke-emerald-400 stroke-[4]"/><path d="M50,68 L28,82 L22,102"/><path d="M50,68 L72,82 L78,102"/></svg>`,
+                rules: { elbowsPointingUp: true, deepSquat: true }
+            },
+            {
+                id: 'mermaid', name: 'Duyung / Ikan Berenang', icon: '🧜‍♂️',
+                desc: 'Rapatkan kedua-dua kaki sepenuhnya, dan temukan tangan melengkung rapat di atas kepala!',
+                svg: `<svg viewBox="0 0 100 120" class="w-full h-full stroke-cyan-400 fill-none stroke-[3.5] stroke-linecap-round stroke-linejoin-round"><circle cx="50" cy="32" r="8" class="fill-cyan-950/80 stroke-cyan-300"/><path d="M50,40 L50,70"/><path d="M50,44 Q32,25 48,12" class="stroke-emerald-400 stroke-[4]"/><path d="M50,44 Q68,25 52,12" class="stroke-emerald-400 stroke-[4]"/><path d="M50,70 L50,105" class="stroke-cyan-300 stroke-[5]"/><path d="M50,105 L42,115 M50,105 L58,115" class="stroke-amber-400 stroke-[3]"/></svg>`,
+                rules: { legsTogether: true, handsOverheadTogether: true }
+            }
+        ];
+
+        let playerName = "Pelajar";
+        let playerClass = "Tahun 1";
+        let playerAvatar = "🧑‍🎓";
+
+        let currentMode = 'challenge';
+        let currentAnimalIndex = 0;
+        let isWebcamActive = false;
+        let isMirrored = true;
+        let drawUniformOverlay = true;
+        let facingMode = 'user'; // 'user' (front/selfie) or 'environment' (back camera)
+
+        let cameraHelper = null;
+        let poseDetector = null;
+        let isProcessingFrame = false;
+
+        let currentAccuracy = 0;
+        let holdTimeMs = 0;
+        const ACCURACY_THRESHOLD = 50; // Threshold > 50%
+        const REQUIRED_HOLD_MS = 1000;   // Hold 1.0s
+        let lastTimestamp = performance.now();
+
+        // Snapshots Storage (10 Pose Pictures)
+        let poseSnapshots = new Array(10).fill(null);
+        let poseScores = new Array(10).fill(0);
+
+        const videoElement = document.getElementById('webcamVideo');
+        const canvasElement = document.getElementById('outputCanvas');
+        const canvasCtx = canvasElement.getContext('2d');
+        const camPlaceholder = document.getElementById('camPlaceholder');
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'beep') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(650, now);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now); osc.stop(now + 0.08);
+                } else if (type === 'camera') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(1200, now);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now); osc.stop(now + 0.12);
+                } else if (type === 'win') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.08);
+                    osc.frequency.setValueAtTime(783.99, now + 0.16);
+                    osc.frequency.setValueAtTime(1046.50, now + 0.24);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now); osc.stop(now + 0.5);
+                }
+            } catch (e) {}
+        }
+
+        window.onload = function() {
+            renderAnimalList();
+            loadAnimalPose(0);
+            initMediaPipePose();
+        };
+
+        function startGameSession(e) {
+            e.preventDefault();
+            playerName = document.getElementById('inputPlayerName').value.trim() || "Pemain";
+            playerClass = document.getElementById('selectPlayerClass').value;
+            playerAvatar = document.getElementById('selectAvatar').value;
+
+            document.getElementById('headerPlayerName').innerText = playerName;
+            document.getElementById('headerPlayerClass').innerText = playerClass;
+            document.getElementById('headerAvatar').innerText = playerAvatar;
+            document.getElementById('playerBadgeHeader').classList.remove('hidden');
+            document.getElementById('playerBadgeHeader').classList.add('flex');
+
+            document.getElementById('startModal').classList.add('hidden');
+
+            if (!isWebcamActive) {
+                toggleWebcam();
+            }
+        }
+
+        function renderAnimalList() {
+            const container = document.getElementById('animalList');
+            container.innerHTML = '';
+
+            ANIMAL_POSES.forEach((animal, idx) => {
+                const card = document.createElement('button');
+                card.id = `animal-card-${idx}`;
+                card.onclick = () => selectAnimal(idx);
+                const hasPic = poseSnapshots[idx] !== null;
+
+                card.className = `p-2 rounded-xl border text-left transition-all duration-200 flex items-center space-x-2 relative btn-touch-active ${
+                    idx === currentAnimalIndex 
+                    ? 'bg-cyan-950/90 border-cyan-400 text-white shadow-lg' 
+                    : 'bg-gray-800/60 border-gray-700/60 text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                }`;
+
+                card.innerHTML = `
+                    <span class="text-base sm:text-lg p-1 bg-gray-900/80 rounded-lg border border-gray-700">${animal.icon}</span>
+                    <div class="overflow-hidden pr-2">
+                        <div class="text-[11px] sm:text-xs font-bold truncate">${animal.name}</div>
+                        <div class="text-[9px] text-gray-400">${hasPic ? '📸 Ready' : 'Aksi #' + (idx + 1)}</div>
+                    </div>
+                    ${hasPic ? '<span class="absolute right-1.5 top-1.5 text-[10px]">✅</span>' : ''}
+                `;
+                container.appendChild(card);
+            });
+
+            const countCaptured = poseSnapshots.filter(x => x !== null).length;
+            document.getElementById('galleryCountBadge').innerText = `📸 ${countCaptured}/10 Gambar`;
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            const btnChallenge = document.getElementById('btnModeChallenge');
+            const btnFree = document.getElementById('btnModeFree');
+            const progressBox = document.getElementById('challengeProgressBox');
+
+            if (mode === 'challenge') {
+                btnChallenge.className = "px-2 py-1 rounded-lg text-xs font-semibold transition-all duration-200 bg-cyan-500 text-black shadow-md btn-touch-active";
+                btnFree.className = "px-2 py-1 rounded-lg text-xs font-semibold transition-all duration-200 text-gray-300 hover:text-white btn-touch-active";
+                progressBox.style.display = "block";
+            } else {
+                btnFree.className = "px-2 py-1 rounded-lg text-xs font-semibold transition-all duration-200 bg-emerald-500 text-black shadow-md btn-touch-active";
+                btnChallenge.className = "px-2 py-1 rounded-lg text-xs font-semibold transition-all duration-200 text-gray-300 hover:text-white btn-touch-active";
+                progressBox.style.display = "none";
+            }
+        }
+
+        function selectAnimal(index) {
+            currentAnimalIndex = index;
+            loadAnimalPose(index);
+        }
+
+        function loadAnimalPose(index) {
+            const animal = ANIMAL_POSES[index];
+            document.getElementById('animalIcon').innerText = animal.icon;
+            document.getElementById('animalName').innerText = animal.name;
+            document.getElementById('animalDesc').innerText = animal.desc;
+            document.getElementById('levelBadge').innerText = `Aksi ${index + 1} / ${ANIMAL_POSES.length}`;
+            document.getElementById('poseGuideGraphic').innerHTML = animal.svg;
+
+            renderAnimalList();
+            holdTimeMs = 0;
+            updateHoldTimerUI();
+            showFeedback("", false);
+        }
+
+        function nextAnimal() {
+            if (currentAnimalIndex < ANIMAL_POSES.length - 1) {
+                currentAnimalIndex++;
+                loadAnimalPose(currentAnimalIndex);
+            } else {
+                showSummaryModal();
+            }
+        }
+
+        function toggleMirror() {
+            isMirrored = !isMirrored;
+            if (isMirrored) {
+                canvasElement.classList.add('mirror-canvas');
+                document.getElementById('mirrorStateText').innerText = "ON";
+            } else {
+                canvasElement.classList.remove('mirror-canvas');
+                document.getElementById('mirrorStateText').innerText = "OFF";
+            }
+        }
+
+        function toggleSkeletonOverlay() {
+            drawUniformOverlay = !drawUniformOverlay;
+            document.getElementById('uniformBtnText').innerText = drawUniformOverlay ? "ON" : "OFF";
+        }
+
+        function showGithubHelpModal() {
+            document.getElementById('githubHelpModal').classList.remove('hidden');
+        }
+
+        function closeGithubHelpModal() {
+            document.getElementById('githubHelpModal').classList.add('hidden');
+        }
+
+        function initMediaPipePose() {
+            poseDetector = new Pose({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose@0.5.1675469404/${file}`
+            });
+            poseDetector.setOptions({
+                modelComplexity: 1,
+                smoothLandmarks: true,
+                enableSegmentation: false,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+            poseDetector.onResults(onPoseResults);
+        }
+
+        async function startCameraInstance() {
+            if (cameraHelper) {
+                try { await cameraHelper.stop(); } catch(e){}
+            }
+
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error("Pelayar web ini tidak menyokong akses kamera standard (WebRTC).");
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: facingMode,
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
+
+                stream.getTracks().forEach(track => track.stop());
+            } catch (err) {
+                console.error("Mobile Camera Access Error:", err);
+                showCameraErrorModal(err);
+                return;
+            }
+
+            if (poseDetector) {
+                await poseDetector.initialize();
+            }
+
+            isProcessingFrame = false;
+
+            cameraHelper = new Camera(videoElement, {
+                onFrame: async () => {
+                    if (isWebcamActive && poseDetector && !isProcessingFrame) {
+                        isProcessingFrame = true;
+                        try {
+                            await poseDetector.send({ image: videoElement });
+                        } catch (err) {
+                            console.warn("Frame detection skipped:", err);
+                        } finally {
+                            isProcessingFrame = false;
+                        }
+                    }
+                },
+                facingMode: facingMode,
+                width: 640, height: 480
+            });
+
+            await cameraHelper.start();
+            isWebcamActive = true;
+            camPlaceholder.classList.add('hidden');
+            document.getElementById('camBtnText').innerText = "Tutup Kamera";
+        }
+
+        function showCameraErrorModal(err) {
+            const modal = document.getElementById('cameraErrorModal');
+            const msgEl = document.getElementById('cameraErrorMessage');
+            
+            if (err) {
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    msgEl.innerText = "Kebenaran kamera telah ditolak oleh pelayar telefon anda.";
+                } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                    msgEl.innerText = "Kamera tidak ditemui pada peranti ini.";
+                } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                    msgEl.innerText = "Kamera sedang digunakan oleh aplikasi lain (contoh: WhatsApp/Zoom).";
+                } else {
+                    msgEl.innerText = err.message || "Gagal membuka kamera.";
+                }
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function showCameraHelpModal() {
+            document.getElementById('cameraErrorMessage').innerText = "Panduan pengaktifan kamera telefon pintar:";
+            document.getElementById('cameraErrorModal').classList.remove('hidden');
+        }
+
+        function closeCameraErrorModal() {
+            document.getElementById('cameraErrorModal').classList.add('hidden');
+        }
+
+        function retryCameraAccess() {
+            closeCameraErrorModal();
+            toggleWebcam();
+        }
+
+        async function toggleWebcam() {
+            if (isWebcamActive) {
+                if (cameraHelper) await cameraHelper.stop();
+                isWebcamActive = false;
+                camPlaceholder.classList.remove('hidden');
+                document.getElementById('camBtnText').innerText = "Mula Kamera";
+            } else {
+                await startCameraInstance();
+            }
+        }
+
+        async function switchMobileCamera() {
+            facingMode = (facingMode === 'user') ? 'environment' : 'user';
+            if (facingMode === 'environment') {
+                isMirrored = false;
+                canvasElement.classList.remove('mirror-canvas');
+                document.getElementById('mirrorStateText').innerText = "OFF";
+            } else {
+                isMirrored = true;
+                canvasElement.classList.add('mirror-canvas');
+                document.getElementById('mirrorStateText').innerText = "ON";
+            }
+
+            if (isWebcamActive) {
+                await startCameraInstance();
+                showFeedback("🔄 Kamera Bertukar!", false);
+            }
+        }
+
+        function calculateAngle(A, B, C) {
+            if (!A || !B || !C) return 0;
+            const radians = Math.atan2(C.y - B.y, C.x - B.x) - Math.atan2(A.y - B.y, A.x - B.x);
+            let angle = Math.abs((radians * 180.0) / Math.PI);
+            if (angle > 180.0) angle = 360.0 - angle;
+            return angle;
+        }
+
+        function evaluatePose(landmarks) {
+            if (!landmarks || landmarks.length === 0) return 0;
+            const sL = landmarks[11], sR = landmarks[12];
+            const eL = landmarks[13], eR = landmarks[14];
+            const wL = landmarks[15], wR = landmarks[16];
+            const hL = landmarks[23], hR = landmarks[24];
+            const kL = landmarks[25], kR = landmarks[26];
+            const aL = landmarks[27], aR = landmarks[28];
+
+            const angleElbowL = calculateAngle(sL, eL, wL);
+            const angleElbowR = calculateAngle(sR, eR, wR);
+            const angleKneeL = calculateAngle(hL, kL, aL);
+            const angleKneeR = calculateAngle(hR, kR, aR);
+
+            const rules = ANIMAL_POSES[currentAnimalIndex].rules;
+            let totalScore = 0;
+            let maxScore = 0;
+
+            function checkCondition(cond, weight = 1) {
+                maxScore += weight;
+                if (cond) totalScore += weight;
+            }
+
+            if (rules.elbowsBent) {
+                checkCondition(angleElbowL >= rules.elbowsBent.min && angleElbowL <= rules.elbowsBent.max);
+                checkCondition(angleElbowR >= rules.elbowsBent.min && angleElbowR <= rules.elbowsBent.max);
+            }
+            if (rules.handsAboveShoulders) checkCondition(wL.y < sL.y || wR.y < sR.y, 1.5);
+            if (rules.kneesBent) checkCondition(angleKneeL < 155 || angleKneeR < 155);
+            if (rules.deepSquat) { checkCondition(angleKneeL < 135, 1.5); checkCondition(angleKneeR < 135, 1.5); }
+            if (rules.armsSpreadHorizontal) {
+                const spreadY = Math.abs(wL.y - sL.y) + Math.abs(wR.y - sR.y);
+                checkCondition(spreadY < 0.35, 2);
+            }
+            if (rules.standingTall) { checkCondition(angleKneeL > 135); checkCondition(angleKneeR > 135); }
+            if (rules.handsOverheadTogether) {
+                checkCondition(wL.y < sL.y || wR.y < sR.y, 1.5);
+                checkCondition(Math.hypot(wL.x - wR.x, wL.y - wR.y) < 0.35, 1.5);
+            }
+            if (rules.oneLegRaised) checkCondition(Math.abs(kL.y - kR.y) > 0.07, 2);
+            if (rules.handsAtChest) {
+                checkCondition(wL.y > sL.y - 0.1 && wL.y < hL.y + 0.1);
+                checkCondition(wR.y > sR.y - 0.1 && wR.y < hR.y + 0.1);
+            }
+            if (rules.elbowsHighUp || rules.elbowsPointingUp) checkCondition(eL.y < sL.y || eR.y < sR.y, 2);
+            if (rules.legsTogether) checkCondition(Math.hypot(aL.x - aR.x, aL.y - aR.y) < 0.2, 2);
+
+            if (maxScore === 0) return 55;
+            return Math.min(100, Math.round((totalScore / maxScore) * 100));
+        }
+
+        function onPoseResults(results) {
+            canvasElement.width = videoElement.videoWidth || 640;
+            canvasElement.height = videoElement.videoHeight || 480;
+
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            if (results.image) {
+                canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            }
+
+            if (results.poseLandmarks) {
+                const landmarks = results.poseLandmarks;
+                currentAccuracy = evaluatePose(landmarks);
+
+                if (drawUniformOverlay) {
+                    drawStudentUniformOverlay(landmarks);
+                }
+                updateAccuracyUI();
+            } else {
+                currentAccuracy = 0;
+                updateAccuracyUI();
+            }
+
+            // Draw Persistent Watermark: By Cikgu Rafi
+            drawWatermarkOnCanvas(canvasCtx, canvasElement.width, canvasElement.height);
+
+            canvasCtx.restore();
+        }
+
+        function drawWatermarkOnCanvas(ctx, width, height) {
+            ctx.save();
+            if (isMirrored) {
+                ctx.translate(width, 0);
+                ctx.scale(-1, 1);
+            }
+
+            const text = "By Cikgu Rafi";
+            ctx.font = "bold 15px Outfit, sans-serif";
+            const textWidth = ctx.measureText(text).width;
+            const px = width - textWidth - 24;
+            const py = height - 20;
+
+            ctx.fillStyle = "rgba(11, 15, 23, 0.75)";
+            ctx.strokeStyle = "rgba(6, 182, 212, 0.6)";
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(px - 8, py - 16, textWidth + 16, 24, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = "#f59e0b"; // Amber color
+            ctx.fillText(text, px, py);
+            ctx.restore();
+        }
+
+        function drawStudentUniformOverlay(lm) {
+            const w = canvasElement.width;
+            const h = canvasElement.height;
+            function p(i) { return { x: lm[i].x * w, y: lm[i].y * h, vis: lm[i].visibility }; }
+
+            const head = p(0), sL = p(11), sR = p(12);
+            const eL = p(13), eR = p(14), wL = p(15), wR = p(16);
+            const hL = p(23), hR = p(24), kL = p(25), kR = p(26), aL = p(27), aR = p(28);
+
+            const isAccurate = currentAccuracy >= ACCURACY_THRESHOLD;
+            const themeColor = isAccurate ? '#10b981' : '#06b6d4';
+
+            canvasCtx.lineWidth = 5;
+            canvasCtx.strokeStyle = themeColor;
+            canvasCtx.lineCap = 'round';
+
+            const connections = [[sL, eL], [eL, wL], [sR, eR], [eR, wR], [hL, kL], [kL, aL], [hR, kR], [kR, aR]];
+            connections.forEach(([p1, p2]) => {
+                if (p1.vis > 0.35 && p2.vis > 0.35) {
+                    canvasCtx.beginPath(); canvasCtx.moveTo(p1.x, p1.y); canvasCtx.lineTo(p2.x, p2.y); canvasCtx.stroke();
+                }
+            });
+
+            if (sL.vis > 0.35 && sR.vis > 0.35 && hL.vis > 0.35 && hR.vis > 0.35) {
+                canvasCtx.fillStyle = isAccurate ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 255, 255, 0.35)';
+                canvasCtx.strokeStyle = isAccurate ? '#10b981' : '#ffffff';
+                canvasCtx.lineWidth = 2.5;
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(sL.x, sL.y); canvasCtx.lineTo(sR.x, sR.y);
+                canvasCtx.lineTo(hR.x, hR.y); canvasCtx.lineTo(hL.x, hL.y);
+                canvasCtx.closePath(); canvasCtx.fill(); canvasCtx.stroke();
+
+                const neckX = (sL.x + sR.x) / 2, neckY = (sL.y + sR.y) / 2;
+                canvasCtx.fillStyle = '#2563eb';
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(neckX - 4, neckY); canvasCtx.lineTo(neckX + 4, neckY);
+                canvasCtx.lineTo(neckX + 3, neckY + 24); canvasCtx.lineTo(neckX, neckY + 30);
+                canvasCtx.lineTo(neckX - 3, neckY + 24);
+                canvasCtx.closePath(); canvasCtx.fill();
+            }
+
+            if (head.vis > 0.35) {
+                canvasCtx.fillStyle = '#1e3a8a';
+                canvasCtx.beginPath(); canvasCtx.arc(head.x, head.y - 8, 20, Math.PI, 0); canvasCtx.fill();
+                canvasCtx.fillStyle = themeColor;
+                canvasCtx.beginPath(); canvasCtx.arc(head.x, head.y, 6, 0, Math.PI * 2); canvasCtx.fill();
+            }
+        }
+
+        function capturePoseSnapshot() {
+            const flash = document.getElementById('snapshotFlash');
+            flash.style.opacity = '0.9';
+            setTimeout(() => { flash.style.opacity = '0'; }, 150);
+
+            playSound('camera');
+
+            const dataUrl = canvasElement.toDataURL('image/png');
+            poseSnapshots[currentAnimalIndex] = dataUrl;
+            poseScores[currentAnimalIndex] = currentAccuracy;
+
+            renderAnimalList();
+        }
+
+        function manualCaptureSnapshot() {
+            capturePoseSnapshot();
+            showFeedback("📸 Gambar Berjaya Ditangkap!", true);
+        }
+
+        function updateAccuracyUI() {
+            document.getElementById('accuracyText').innerText = `${currentAccuracy}%`;
+            document.getElementById('accuracyBar').style.width = `${currentAccuracy}%`;
+
+            let stars = "☆☆☆";
+            if (currentAccuracy >= 80) stars = "⭐⭐⭐";
+            else if (currentAccuracy >= 65) stars = "⭐⭐☆";
+            else if (currentAccuracy >= 50) stars = "⭐☆☆";
+            document.getElementById('starsDisplay').innerText = stars;
+
+            const now = performance.now();
+            const delta = now - lastTimestamp;
+            lastTimestamp = now;
+
+            if (currentAccuracy > ACCURACY_THRESHOLD && currentMode === 'challenge') {
+                holdTimeMs += delta;
+                document.getElementById('holdTimerContainer').classList.remove('hidden');
+                updateHoldTimerUI();
+
+                if (holdTimeMs >= REQUIRED_HOLD_MS) {
+                    holdTimeMs = 0;
+                    capturePoseSnapshot();
+                    showFeedback("🌟 Pose Tepat & Gambar Ditangkap!", true);
+                    playSound('win');
+                    setTimeout(() => {
+                        nextAnimal();
+                    }, 700);
+                } else if (Math.floor(holdTimeMs / 250) !== Math.floor((holdTimeMs - delta) / 250)) {
+                    playSound('beep');
+                }
+            } else {
+                holdTimeMs = Math.max(0, holdTimeMs - delta * 2);
+                if (holdTimeMs === 0) {
+                    document.getElementById('holdTimerContainer').classList.add('hidden');
+                } else {
+                    updateHoldTimerUI();
+                }
+            }
+        }
+
+        function updateHoldTimerUI() {
+            const remainingSec = Math.max(0, (REQUIRED_HOLD_MS - holdTimeMs) / 1000).toFixed(1);
+            const percent = Math.min(100, (holdTimeMs / REQUIRED_HOLD_MS) * 100);
+            document.getElementById('holdCountdownText').innerText = `${remainingSec}s`;
+            document.getElementById('holdTimerBar').style.width = `${percent}%`;
+        }
+
+        function showFeedback(text, isSuccess) {
+            const banner = document.getElementById('feedbackBanner');
+            if (!banner) return;
+            if (!text) {
+                banner.classList.add('opacity-0', '-translate-y-4');
+                banner.classList.remove('opacity-100', 'translate-y-0');
+                return;
+            }
+            banner.innerText = text;
+            banner.className = `absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full font-extrabold text-xs sm:text-base transition-all duration-300 z-20 title-font whitespace-nowrap ${
+                isSuccess 
+                ? 'bg-gradient-to-r from-emerald-400 to-teal-400 text-black shadow-lg scale-105 opacity-100 translate-y-0' 
+                : 'bg-gray-800 text-amber-300 border border-amber-500/40 opacity-100 translate-y-0'
+            }`;
+        }
+
+        function showSummaryModal() {
+            document.getElementById('summaryPlayerName').innerText = playerName;
+            document.getElementById('summaryPlayerClass').innerText = playerClass;
+            document.getElementById('summaryAvatar').innerText = playerAvatar;
+
+            const totalScoreSum = poseScores.reduce((a, b) => a + b, 0);
+            const avgScore = Math.round(totalScoreSum / ANIMAL_POSES.length);
+            document.getElementById('summaryTotalScore').innerText = `${totalScoreSum} / 1000 Mata`;
+
+            let gradeText = "CEMERLANG 🌟🌟🌟";
+            if (avgScore < 50) gradeText = "MEMUASKAN ⭐";
+            else if (avgScore < 75) gradeText = "SANGAT BAIK 🌟⭐";
+            document.getElementById('summaryGrade').innerText = gradeText;
+
+            const grid = document.getElementById('summaryGalleryGrid');
+            grid.innerHTML = '';
+
+            ANIMAL_POSES.forEach((animal, i) => {
+                const imgUrl = poseSnapshots[i];
+                const score = poseScores[i];
+                const item = document.createElement('div');
+                item.className = "bg-gray-950 border border-gray-800 rounded-xl p-2 text-center flex flex-col items-center justify-between";
+
+                item.innerHTML = `
+                    <div class="text-[11px] font-bold text-gray-200 truncate w-full mb-1">${animal.icon} ${animal.name}</div>
+                    <div class="w-full h-20 sm:h-24 bg-gray-900 rounded-lg overflow-hidden flex items-center justify-center border border-gray-800 my-1 relative">
+                        ${imgUrl ? `<img src="${imgUrl}" class="w-full h-full object-cover">` : '<span class="text-[10px] text-gray-600">Tiada Gambar</span>'}
+                    </div>
+                    <div class="text-[10px] font-extrabold ${score >= 50 ? 'text-emerald-400' : 'text-amber-400'}">
+                        ${score > 0 ? 'Ketepatan: ' + score + '%' : 'Belum Dicuba'}
+                    </div>
+                `;
+                grid.appendChild(item);
+            });
+
+            document.getElementById('summaryModal').classList.remove('hidden');
+            playSound('win');
+        }
+
+        function closeSummaryModal() {
+            document.getElementById('summaryModal').classList.add('hidden');
+        }
+
+        function restartGame() {
+            poseSnapshots.fill(null);
+            poseScores.fill(0);
+            closeSummaryModal();
+            currentAnimalIndex = 0;
+            loadAnimalPose(0);
+        }
+    </script>
+</body>
+</html>
